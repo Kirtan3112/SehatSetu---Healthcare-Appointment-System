@@ -1,0 +1,567 @@
+========================================
+FILE: Activity Diagram - HAS.pdf
+========================================
+Total pages: 1
+--- PAGE 1 ---
+H ealthcare A ppointm ent S ystem  - A ctivity D iagram
+Patient
+Open appointment booking page
+Select doctor and available slot
+Enter appointment reason
+Submit booking request
+React Web Client
+Send booking request to REST API
+Express API
+Validate access token and patient role
+Return 401 Unauthorized
+Ask patient to log in
+No
+Patient authenticated? Yes
+Booking Service
+Validate request data
+Check that slot exists and is in the future
+Return validation error
+Display error to patient
+No
+Slot valid? Yes
+Atom ically claim  slot
+only if isBooked = false
+Return 409 Conflict
+Ask patient to choose another slot
+No
+Slot claimed successfully? Yes
+MongoDB
+Create appointment record
+with initial status Pending
+Appointment saved successfully?Yes No
+Commit booking transaction Roll back slot claim
+or transaction
+Return booking failure
+Booking Service
+Request confirm ation notification job
+Express API and React Client
+Return 201 Created
+with appointm ent details
+Display booking confirmation
+Notification W orker
+Process confirmation job
+Send email and/or SMS
+Notification sent?Yes No
+Record successful delivery Schedule retry with backoff
+Record delivery failure
+========================================
+FILE: Class Diagram - HAS.pdf
+========================================
+Total pages: 1
+--- PAGE 1 ---
+H ealthcare A ppointm ent System  - C lass D iagram
+UserRole
+PATIENT
+DOCTOR
+ADMIN
+AppointmentStatus
+PENDING
+CONFIRMED
+COMPLETED
+CANCELLED
+NO_SHOW
+NotificationType
+BOOKING_CONFIRMATION
+APPOINTMENT_REMINDER
+CANCELLATION
+RESCHEDULE
+User
+-userId: ObjectId
+-nam e: String
+-em ail: String
+-passwordHash: String
+-role: UserRole
+-phone: String
+-isActive: Boolean
+-createdAt: Date
++updateProfile(): void
++changePassword(): void
+Patient
++searchDoctors(): List<Doctor>
++viewAvailableSlots(): List<Slot>
++bookAppointment(slotId: ObjectId): Appointment
++cancelAppointm ent(appointm entId: ObjectId): void
++rescheduleAppointment(appointmentId: ObjectId, slotId: ObjectId): Appointment
++viewAppointm entHistory(): List<Appointm ent>
+Doctor
+-qualification: String
+-experience: Number
+-fee: Decimal
+-bio: String
+-approved: Boolean
++m anageAvailability(): void
++view Appointm ents(): List<Appointm ent>
++updateAppointmentStatus(appointmentId: ObjectId, status: AppointmentStatus): void
+Adm in
++manageUsers(): void
++approveDoctor(doctorId: ObjectId): void
++m anageDepartm ents(): void
++manageSpecializations(): void
++m onitorAppointm ents(): List<Appointm ent>
++viewReports(): void
++viewAuditLogs(): List<AuditLog>
+Departm ent
+-departm entId: ObjectId
+-nam e: String
+-description: String
+Specialization
+-specializationId: ObjectId
+-nam e: String
+-description: String
+Availability
+-availabilityId: ObjectId
+-dayOfWeek: Number
+-startTim e: String
+-endTime: String
+-slotDuration: Number
+-leaveDates: List<Date>
++generateSlots(date: Date): List<Slot>
+Slot
+-slotId: ObjectId
+-date: Date
+-startTim e: String
+-endTime: String
+-isBooked: Boolean
++isAvailable(): Boolean
+Appointm ent
+-appointm entId: ObjectId
+-reason: String
+-notes: String
+-status: AppointmentStatus
+-createdAt: Date
++confirm (): void
++cancel(): void
++reschedule(newSlotId: ObjectId): void
++updateStatus(status: Appointm entStatus): void
+Only one active booking may claim
+a given slot at a tim e.
+ 
+Enforce this rule in the database
+and booking service, not merely
+through class methods.
+N otification
+-notificationId: ObjectId
+-type: NotificationType
+-message: String
+-sentAt: Date
+-readStatus: Boolean
++send(): Boolean
++markAsRead(): void
+AuditLog
+-auditLogId: ObjectId
+-actor: ObjectId
+-action: String
+-target: String
+-tim estam p: Date
++recordAction(): void
+belongs to
+1 0 ..*
+specializes in
+1 0 ..*
+defines
+1 0 ..*
+offers1 0 ..*
+generates
+books
+1 0 ..*
+attends1 0 ..*
+referenced by history
+1
+0 ..*
+receives1 0 ..*
+perform s actions1 0 ..*
+relates to
+========================================
+FILE: Healthcare Appointment System — Suitable Process Model and Why.pdf
+========================================
+Total pages: 3
+--- PAGE 1 ---
+Healthcare Appointment System — Suitable
+Process Model and Why
+ Oct 13, 2026  ·  @Hunny
+1. Chosen Model
+The best-suited process model is Agile (Scrum) with iterative, incremental delivery: 2-
+week sprints, each ending in a working, tested increment of the system. A short upfront
+phase fixes the architecture, database schema and roles; features are then delivered
+sprint by sprint.
+2. Why Agile Fits This Project
+Modular features: the system splits cleanly into auth, doctor management, slots,
+booking, notifications and admin, so each can ship and be tested on its own.
+Three user groups: patients, doctors and admins can review each increment early, so
+usability problems surface before the whole system is built.
+Evolving requirements: reminders, rescheduling rules and dashboards usually change
+after users see them; short sprints absorb that change cheaply.
+Early risk reduction: the hardest technical problem, double-booking under concurrent
+load, is built and load-tested in an early sprint rather than at the end.
+MERN fits iteration: React components, REST endpoints and Mongoose schemas are
+easy to change and redeploy, and CI/CD supports frequent releases.
+Small team: daily stand-ups, sprint reviews and a shared backlog suit a team of 3 to 6
+developers with little overhead.
+Quality: testing happens inside every sprint, so defects are found while the code is still
+fresh.
+3. Alternatives Considered
+Model Strength Why it is less suitable here
+Waterfall Simple, well documented Needs all requirements frozen upfront;
+user feedback arrives only at the end
+V-Model Strong verification Rigid and sequential; costly when
+requirements change
+Healthcare Appointment System — Suitable Process Model and Why
+Page 1 of 3
+--- PAGE 2 ---
+4. Sprint Cycle and Delivery Plan
+Each sprint takes backlog items to a reviewed increment; what is not finished returns to
+the backlog, and the retrospective feeds the next planning session.
+Model Strength Why it is less suitable here
+Spiral Strong risk analysis Heavy process and cost for a web app
+with well-known technology
+Prototyping Quick user feedback Lacks a delivery structure; risks
+throwaway or unfinished code
+Agile
+(Scrum)
+Frequent releases, feedback,
+adaptability
+Chosen: best match for modular,
+evolving, multi-role software
+Scrum cycle · 1 decision, 1 feedback loop
+Sprint Focus Output
+0 Setup Architecture, database schema, repository, CI
+pipeline
+1 Authentication and roles Registration, login, JWT, role-based access, user
+management
+2 Doctors and slots Profiles, specializations, availability, slot generation
+3 Booking Doctor search, booking, atomic conflict handling
+4 Appointment lifecycle Cancel, reschedule, status updates, history,
+dashboards
+Healthcare Appointment System — Suitable Process Model and Why
+Page 2 of 3
+--- PAGE 3 ---
+Sprint Focus Output
+5 Notifications and admin Reminders, job queue, admin dashboard, audit logs
+6 Hardening and release Load test at 1,000 users, security review,
+deployment
+Healthcare Appointment System — Suitable Process Model and Why
+Page 3 of 3
+========================================
+FILE: Healthcare Appointment System — Technical Feasibility.pdf
+========================================
+Total pages: 8
+--- PAGE 1 ---
+Healthcare Appointment System — Technical
+Feasibility
+ Oct 13, 2026  ·  @Hunny
+1. Overview and Verdict
+The Healthcare Appointment System is technically feasible with the MERN stack, using
+only mature, open-source tools and no specialised hardware. It serves three roles
+(patient, doctor, admin) through one React web app backed by a REST API and MongoDB.
+The hardest technical problem is preventing double-booking under concurrent requests,
+which MongoDB's unique indexes and atomic updates solve. This document covers
+technical feasibility only.
+2. Technology Stack
+Every component below is free, widely documented and production-proven.
+Healthcare Appointment System — Technical Feasibility
+Page 1 of 8
+--- PAGE 2 ---
+3. System Architecture
+A three-tier design: the React client calls the Express API, which reads and writes
+MongoDB; a scheduler sends reminders independently of user requests.
+Layer Technology Role
+Frontend React.js, React Router, Redux
+Toolkit/Context, Axios, Tailwind CSS
+Role-based UI, routing, state,
+API calls
+Backend Node.js, Express.js REST API, business logic,
+middleware
+Database MongoDB with Mongoose ODM Schemas, validation, indexing
+Auth JWT, bcrypt Stateless login, password
+hashing
+Notifications Nodemailer (email), node-cron
+(reminders), optional SMS gateway
+Confirmations and reminders
+Validation Joi / express-validator Input checking
+Testing Jest, Supertest, React Testing Library,
+Postman
+Unit, API and UI tests
+DevOps Git/GitHub, Docker, GitHub Actions Version control, containers,
+CI/CD
+Hosting Vercel/Netlify (frontend), Render/AWS
+(API), MongoDB Atlas
+Cloud deployment
+system architecture · client, API, database, notifications
+Healthcare Appointment System — Technical Feasibility
+Page 2 of 8
+--- PAGE 3 ---
+4. Functional Requirements
+Patient
+Register, log in, reset password, edit profile
+Search doctors by specialization, name or department
+View open time slots and book, cancel or reschedule
+Track appointment status and view history
+Receive confirmation and reminder notifications
+Doctor
+Register (admin-approved), manage profile and qualifications
+Define weekly availability, slot duration, leave and breaks
+View a daily/weekly appointment dashboard
+Update status: Pending, Confirmed, Completed, Cancelled, No-show
+Admin
+Manage users, doctors, departments and specializations
+Approve doctor accounts; activate or block users
+Monitor all appointments, and view reports and audit logs
+System
+Prevent double-booking and past-time booking
+Generate slots from availability rules
+Send automated email/SMS reminders
+Enforce role-based access on every endpoint
+5. Non-Functional Requirements
+Attribute Requirement
+Performance API responses under 500 ms for typical calls; pages
+load in under 3 s; pagination and indexed queries
+Scalability Stateless API scales horizontally behind a load
+balancer; MongoDB Atlas scales by replica sets
+and sharding
+Availability Target 99.5%+ uptime; managed database with
+automated backups
+Healthcare Appointment System — Technical Feasibility
+Page 3 of 8
+--- PAGE 4 ---
+6. Booking Workflow
+The slot check is a single atomic database operation backed by a unique index, so two
+simultaneous requests cannot both succeed; the loser is asked to choose another slot.
+Attribute Requirement
+Reliability Atomic booking, transaction-safe cancellations,
+centralised error handling and logging
+Security Encryption, RBAC, validation (see Section 9)
+Usability Responsive (mobile/desktop) UI, clear booking
+flow, accessibility per WCAG basics
+Maintainability Modular MVC structure, ESLint/Prettier,
+documented REST API (Swagger)
+Compatibility Latest Chrome, Firefox, Edge and Safari
+Auditability Logged admin actions and appointment status
+changes
+booking workflow · 2 decisions, 1 loop
+Healthcare Appointment System — Technical Feasibility
+Page 4 of 8
+--- PAGE 5 ---
+7. API Request Handling and High-Concurrency Pipeline
+A Node.js cluster can serve 1,000 concurrent users comfortably when requests pass
+through a load balancer, a token-bucket rate limiter, cache-aside reads, an atomic slot
+claim and a background job queue. Assuming 1,000 users each send one request every 5
+seconds, peak load is about 200 requests per second; this is an estimate to confirm by
+load testing.
+Load balancing: Nginx with least-connections routing across 3 or more stateless API
+instances (PM2 cluster mode or Docker replicas); health checks remove failing
+instances.
+Rate limiting: token bucket per user and IP, stored in Redis (for example, a burst of 20
+and a refill of 5 per second); excess requests get 429 with a Retry-After header.
+Cache-aside reads: doctor lists, specializations and slot availability are cached in Redis
+for 30 to 60 seconds; the slot cache is cleared on every booking.
+Accuracy under concurrency: the slot claim is an atomic compare-and-set
+( findOneAndUpdate  where isBooked is false), backed by the unique slot index; an
+idempotency key on booking requests prevents duplicates when a client retries.
+Asynchronous work: confirmations and reminders go to a BullMQ queue with retries
+and exponential backoff, so the API responds first.
+Overload protection: MongoDB connection pooling, 5-second request timeouts, a
+circuit breaker on email/SMS, body-size limits, pagination and gzip. If the system
+saturates, it returns 503 (load shedding) instead of queuing without limit.
+request pipeline · 4 gates, cache, atomic claim, job queue
+Healthcare Appointment System — Technical Feasibility
+Page 5 of 8
+--- PAGE 6 ---
+Stability: graceful shutdown that drains open requests, a health endpoint, structured
+logs and CPU-based autoscaling. Validate with k6 or Artillery at 1,000+ virtual users.
+Every response uses one envelope: success, data and error (code, message).
+8. Database Structure (MongoDB)
+Seven collections cover the system. References use ObjectIds; slots are stored as
+documents so booking can be atomic.
+Code Meaning
+200 / 201 Success / resource created
+400 Invalid input
+401 / 403 Not logged in / role not allowed
+404 Resource not found
+409 Slot already booked
+429 Rate limit exceeded
+503 System overloaded, retry later
+Collection Key fields Relations / indexes
+users name, email, passwordHash, role
+(patient/doctor/admin), phone,
+isActive, createdAt
+Unique index on email
+doctors userId, specializationId,
+departmentId, qualification,
+experience, fee, bio, approved
+userId → users; index on
+specializationId
+specializations name, description Unique index on name
+availabilities doctorId, dayOfWeek, startTime,
+endTime, slotDuration, leaveDates
+doctorId → doctors
+slots doctorId, date, startTime, endTime,
+isBooked
+Unique compound index
+(doctorId, date, startTime)
+appointments patientId, doctorId, slotId, status,
+reason, notes, createdAt
+Unique index on slotId for active
+bookings; index on (patientId,
+status)
+Healthcare Appointment System — Technical Feasibility
+Page 6 of 8
+--- PAGE 7 ---
+An audit log collection (actor, action, target, timestamp) records admin actions.
+9. Security
+Authentication: bcrypt-hashed passwords; short-lived JWT access tokens with
+refresh tokens in httpOnly cookies; account lockout and rate limiting on login
+Authorization: role-based middleware (patient, doctor, admin) on every route; users
+can access only their own records
+Transport and data: HTTPS/TLS everywhere; MongoDB encryption at rest; secrets in
+environment variables
+API hardening: Helmet, CORS whitelist, input validation, NoSQL-injection sanitising
+(express-mongo-sanitize), XSS protection
+Privacy: minimal medical data stored; where applicable, align with regulations such as
+HIPAA or GDPR (consent, deletion, access logs)
+Monitoring: audit logs, error logging (Winston), automated daily backups
+10. Resource Requirements
+Hardware (development): laptop with 8 GB RAM or more, modern browser; no special
+hardware
+Software: VS Code, Node.js LTS, MongoDB Atlas free tier, Postman, Git, Docker
+Team skills: React, Node/Express, MongoDB, REST design, basic DevOps and testing
+Production: one app server (2 vCPU, 4 GB RAM is enough to start), managed MongoDB
+cluster, domain and SSL certificate, email service
+11. Technical Risks and Conclusion
+Collection Key fields Relations / indexes
+notifications userId, type, message, sentAt,
+readStatus
+userId → users
+Risk Mitigation
+Double-booking under concurrent
+requests
+Unique slot index plus atomic update; reject on
+conflict
+Sensitive data exposure Encryption, RBAC, minimal data, audit logs
+Reminder delivery failures Retry queue; email fallback for SMS
+Healthcare Appointment System — Technical Feasibility
+Page 7 of 8
+--- PAGE 8 ---
+Conclusion: All required features map directly to standard MERN capabilities. No
+unproven technology or special hardware is needed, so the project is technically feasible.
+Risk Mitigation
+Scaling load at peak hours Stateless API, caching, indexes, horizontal
+scaling
+Third-party service downtime Graceful degradation and error logging
+Healthcare Appointment System — Technical Feasibility
+Page 8 of 8
+========================================
+FILE: Sequence Diagram - HAS.pdf
+========================================
+Total pages: 1
+--- PAGE 1 ---
+H ealthcare A ppointm ent S ystem  - S equence D iagram
+Patient React Web Client Express REST API Authentication Middleware Booking Service MongoDB Notification Job Queue Email/SMS Worker
+A u th en ticatio n
+1 Select a doctor and time slot
+2 Submit booking request
+3
+POST /api/appointments
+Authorization: Bearer JWT
+slotId, reason
+4 Verify access token and role
+a lt [Token invalid or expired]
+5 Authentication failure
+6 401 Unauthorized
+7 Request login
+[A u th e n tic a te d  p a tie n t]
+8 Patient identity verified
+9 Create appointm ent(patientId, slotId)
+V alidate and C laim  S lot
+1 0 Find slot and verify availability
+1 1 Slot details
+a lt [S lot does not exist]
+1 2 Slot not found
+1 3 404 Not Found
+1 4 Slot unavailable
+[S lot already booked]
+1 5 Booking conflict
+1 6 409 Conflict
+1 7 Choose another slot
+[S lo t availab le]
+Claim  the slot atom ically.
+Use a conditional update where
+isBooked = false and enforce
+the unique slot/booking constraint.
+1 8 Atom ic slot claim
+1 9 Claim result
+a lt [A n o th er req u est claim ed  th e slo t first]
+2 0 Booking conflict
+2 1 409 Conflict
+2 2 Choose another slot
+[Slot claim ed successfully]
+2 3 Create appointment record
+2 4 Appointm ent created
+o p t [A ppointm ent persistence fails]
+2 5 Roll back slot claim
+if not already transactional
+2 6 Rollback result
+2 7 Booking failed
+2 8 500 / appropriate error
+2 9 Show failure message
+Q ueue N otification
+3 0 Enqueue confirmation job
+3 1 Job accepted
+3 2 Booking confirmed
+3 3 201 Created
+Appointm ent details
+3 4 Show confirmation
+Asynchronous Notification
+3 5 Deliver confirm ation job
+3 6 Prepare email/SMS
+3 7 Send confirmation
+3 8 Record success or retry failure
+========================================
+FILE: Use case - HAS.pdf
+========================================
+Total pages: 1
+--- PAGE 1 ---
+H ealthcare A ppointm ent System  - U se C ase D iagram
+H ealthcare A ppointm ent S ystem
+P atient S ervices
+D octor Services
+A d m in istratio n
+B ooking and N otifications
+Register Account
+Log In / Reset Password
+Manage Own Profile
+Search Doctors
+View Available Slots
+Book Appointment
+Cancel Appointment
+Reschedule Appointment
+View Appointment History
+and Status
+Manage Doctor Profile
+and Qualifications
+Manage Availability,
+Leave and Breaks
+View Appointments
+Update Appointment Status
+Manage Users
+Approve Doctor Accounts
+Manage Doctors
+Manage Departments
+and Specializations
+Monitor Appointments
+View Reports and Audit Logs
+Validate Slot Availability
+Prevent Double Booking
+Send Confirmations
+and Reminders
+Patient
+Doctor
+Adm in
+Email/SMS Service
+«include»
+«include»
+«include»
